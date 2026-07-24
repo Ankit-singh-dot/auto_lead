@@ -3,8 +3,7 @@
  * 
  * Handles:
  * - Scraper tab (loading emails, CSV export, start/stop)
- * - Sender tab (SMTP settings, composed email, bulk/selective sending)
- * - API communication with local Node.js server
+ * - Sender tab (Mailto BCC logic)
  */
 
 (function () {
@@ -29,43 +28,24 @@
 
   // ─── DOM Elements: Sender ───────────────────────────────────────────────
 
-  const serverWarning = document.getElementById('serverWarning');
-  
-  const smtpPreset = document.getElementById('smtpPreset');
-  const smtpHost = document.getElementById('smtpHost');
-  const smtpPort = document.getElementById('smtpPort');
-  const smtpSecure = document.getElementById('smtpSecure');
-  const smtpUser = document.getElementById('smtpUser');
-  const smtpPass = document.getElementById('smtpPass');
-  const senderName = document.getElementById('senderName');
-  const testSmtpBtn = document.getElementById('testSmtpBtn');
-  const smtpTestResult = document.getElementById('smtpTestResult');
-
   const emailSubject = document.getElementById('emailSubject');
   const emailBody = document.getElementById('emailBody');
   const sendTargetRadios = document.getElementsByName('sendTarget');
   const selectedCountSpan = document.getElementById('selectedCount');
   const allCountSpan = document.getElementById('allCount');
-  const sendDelay = document.getElementById('sendDelay');
   
   const sendBtn = document.getElementById('sendBtn');
-  const cancelSendBtn = document.getElementById('cancelSendBtn');
-  const progressContainer = document.getElementById('sendProgressContainer');
-  const progressText = document.getElementById('progressText');
-  const progressStats = document.getElementById('progressStats');
-  const progressBar = document.getElementById('progressBar');
-  const resultsLog = document.getElementById('resultsLog');
+  const gmailBtn = document.getElementById('gmailBtn');
+  const bccWarning = document.getElementById('bccWarning');
 
   // ─── State ───────────────────────────────────────────────────────────────
 
   let emails = [];
   let isActive = false;
-  let API_URL = 'http://localhost:3847';
-  let progressPollInterval = null;
 
   // ─── Init ────────────────────────────────────────────────────────────────
 
-  async function init() {
+  function init() {
     // Tabs
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
@@ -79,13 +59,8 @@
       }
     });
 
-    // Load emails and SMTP settings
+    // Load emails
     loadEmails();
-    loadSmtpSettings();
-    checkServerStatus();
-
-    // Check server status periodically
-    setInterval(checkServerStatus, 5000);
   }
 
   // ─── Tab Logic ─────────────────────────────────────────────────────────
@@ -182,16 +157,22 @@
     
     const targetSelected = document.querySelector('input[name="sendTarget"]:checked').value;
     const hasTargets = targetSelected === 'all' ? total > 0 : selected > 0;
-    const hasConfig = smtpHost.value && smtpPort.value && smtpUser.value && smtpPass.value;
     const hasEmail = emailSubject.value;
 
-    sendBtn.disabled = !(hasTargets && hasConfig && hasEmail && serverWarning.classList.contains('hidden'));
+    sendBtn.disabled = !(hasTargets && hasEmail);
+    gmailBtn.disabled = !(hasTargets && hasEmail);
+    
+    // Show warning if trying to BCC too many people
+    const targetCount = targetSelected === 'all' ? total : selected;
+    if (targetCount > 100) {
+      bccWarning.classList.remove('hidden');
+    } else {
+      bccWarning.classList.add('hidden');
+    }
   }
 
   // Bind inputs to validation
-  [smtpHost, smtpPort, smtpUser, smtpPass, emailSubject].forEach(el => {
-    el.addEventListener('input', updateSenderCounts);
-  });
+  emailSubject.addEventListener('input', updateSenderCounts);
   Array.from(sendTargetRadios).forEach(r => r.addEventListener('change', updateSenderCounts));
 
   // Toggle Scraping
@@ -217,7 +198,7 @@
     updateToggleUI();
   });
 
-  // Export CSV & Clear (keeping from original)
+  // Export CSV
   exportBtn.addEventListener('click', () => {
     if (emails.length === 0) return;
     const headers = ['Email', 'Poster Name', 'Source', 'Context', 'Timestamp'];
@@ -272,235 +253,55 @@
   }, 2000);
 
 
-  // ─── Sender Tab Logic ──────────────────────────────────────────────────
+  // ─── Sender Tab Logic (Mailto BCC) ─────────────────────────────────────
 
-  const SMTP_PRESETS = {
-    gmail: { host: 'smtp.gmail.com', port: 587, secure: false },
-    outlook: { host: 'smtp-mail.outlook.com', port: 587, secure: false },
-    yahoo: { host: 'smtp.mail.yahoo.com', port: 465, secure: true }
-  };
-
-  smtpPreset.addEventListener('change', () => {
-    const preset = SMTP_PRESETS[smtpPreset.value];
-    if (preset) {
-      smtpHost.value = preset.host;
-      smtpPort.value = preset.port;
-      smtpSecure.checked = preset.secure;
-      saveSmtpSettings();
-      updateSenderCounts();
-    }
-  });
-
-  function loadSmtpSettings() {
-    chrome.runtime.sendMessage({ type: 'GET_SMTP_SETTINGS' }, (response) => {
-      if (response && response.settings) {
-        const s = response.settings;
-        smtpPreset.value = s.preset || 'custom';
-        smtpHost.value = s.host || '';
-        smtpPort.value = s.port || '';
-        smtpSecure.checked = s.secure || false;
-        smtpUser.value = s.user || '';
-        smtpPass.value = s.pass || '';
-        senderName.value = s.senderName || '';
-        emailSubject.value = s.subject || '';
-        emailBody.value = s.body || '';
-        updateSenderCounts();
-      }
-    });
-  }
-
-  function saveSmtpSettings() {
-    chrome.runtime.sendMessage({
-      type: 'SAVE_SMTP_SETTINGS',
-      settings: {
-        preset: smtpPreset.value,
-        host: smtpHost.value,
-        port: smtpPort.value,
-        secure: smtpSecure.checked,
-        user: smtpUser.value,
-        pass: smtpPass.value,
-        senderName: senderName.value,
-        subject: emailSubject.value,
-        body: emailBody.value
-      }
-    });
-  }
-
-  // Save on input
-  [smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, senderName, emailSubject, emailBody].forEach(el => {
-    el.addEventListener('change', saveSmtpSettings);
-  });
-
-  function getSmtpConfig() {
-    return {
-      host: smtpHost.value,
-      port: Number(smtpPort.value),
-      secure: smtpSecure.checked,
-      user: smtpUser.value,
-      pass: smtpPass.value
-    };
-  }
-
-  function showMessage(el, text, isSuccess) {
-    el.textContent = text;
-    el.className = `form-message ${isSuccess ? 'success' : 'error'}`;
-    setTimeout(() => { el.style.display = 'none'; }, 5000);
-  }
-
-  // Server API calls
-  async function checkServerStatus() {
-    try {
-      const res = await fetch(`${API_URL}/status`);
-      if (res.ok) {
-        serverWarning.classList.add('hidden');
-        const data = await res.json();
-        if (data.bulk && data.bulk.status === 'sending') {
-          showProgressUI();
-          updateProgressUI(data.bulk);
-          startProgressPolling();
-        }
-      }
-    } catch (e) {
-      serverWarning.classList.remove('hidden');
-      sendBtn.disabled = true;
-    }
-  }
-
-  testSmtpBtn.addEventListener('click', async () => {
-    testSmtpBtn.disabled = true;
-    testSmtpBtn.textContent = 'Testing...';
-    try {
-      const res = await fetch(`${API_URL}/test-connection`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getSmtpConfig())
-      });
-      const data = await res.json();
-      showMessage(smtpTestResult, data.message, data.success);
-    } catch (e) {
-      showMessage(smtpTestResult, 'Server error: ' + e.message, false);
-    } finally {
-      testSmtpBtn.disabled = false;
-      testSmtpBtn.textContent = 'Test Connection';
-    }
-  });
-
-  // Bulk Sending
-  sendBtn.addEventListener('click', async () => {
+  sendBtn.addEventListener('click', () => {
     const target = document.querySelector('input[name="sendTarget"]:checked').value;
     const recipients = target === 'all' 
       ? emails.map(e => e.email) 
       : Array.from(getSelectedEmails());
 
     if (recipients.length === 0) return;
-    if (!confirm(`Ready to send ${recipients.length} emails?`)) return;
 
-    const payload = {
-      smtp: getSmtpConfig(),
-      email: {
-        to: 'ignored_in_bulk',
-        subject: emailSubject.value,
-        body: emailBody.value,
-        senderName: senderName.value,
-        html: emailBody.value.includes('<')
-      },
-      recipients: recipients,
-      delayMs: Number(sendDelay.value)
-    };
+    // Construct Mailto link
+    const subject = encodeURIComponent(emailSubject.value);
+    const body = encodeURIComponent(emailBody.value);
+    const bccList = recipients.join(',');
 
-    try {
-      sendBtn.disabled = true;
-      const res = await fetch(`${API_URL}/send-bulk`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const data = await res.json();
-      if (data.success) {
-        showProgressUI();
-        startProgressPolling();
-      } else {
-        alert(data.message);
-        sendBtn.disabled = false;
-      }
-    } catch (e) {
-      alert('Error starting send: ' + e.message);
-      sendBtn.disabled = false;
-    }
+    // Create the mailto string
+    // We leave the primary "to" field blank so recipients only see themselves in BCC
+    const mailtoLink = `mailto:?bcc=${bccList}&subject=${subject}&body=${body}`;
+
+    // Open it using Chrome's tabs API, which correctly routes to the default mail handler
+    // whether it's a native app (like Apple Mail) or a web handler (like Gmail in Chrome)
+    chrome.tabs.create({ url: mailtoLink, active: true }, (tab) => {
+      // Some web handlers might leave an empty tab open after handling the mailto link,
+      // but native handlers usually close it automatically or don't even open a visible tab.
+      // We will close the popup to give a smooth experience.
+      window.close();
+    });
   });
 
-  cancelSendBtn.addEventListener('click', async () => {
-    try {
-      await fetch(`${API_URL}/cancel`, { method: 'POST' });
-      cancelSendBtn.disabled = true;
-      cancelSendBtn.textContent = 'Cancelling...';
-    } catch (e) {
-      console.error('Cancel failed', e);
-    }
+  gmailBtn.addEventListener('click', () => {
+    const target = document.querySelector('input[name="sendTarget"]:checked').value;
+    const recipients = target === 'all' 
+      ? emails.map(e => e.email) 
+      : Array.from(getSelectedEmails());
+
+    if (recipients.length === 0) return;
+
+    // Construct Gmail Compose URL
+    const subject = encodeURIComponent(emailSubject.value);
+    const body = encodeURIComponent(emailBody.value);
+    const bccList = encodeURIComponent(recipients.join(','));
+
+    // view=cm (compose message), fs=1 (full screen mode)
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&bcc=${bccList}&su=${subject}&body=${body}`;
+
+    chrome.tabs.create({ url: gmailUrl, active: true }, (tab) => {
+      window.close();
+    });
   });
-
-  function showProgressUI() {
-    progressContainer.classList.remove('hidden');
-    sendBtn.classList.add('hidden');
-    cancelSendBtn.classList.remove('hidden');
-    cancelSendBtn.disabled = false;
-    cancelSendBtn.textContent = 'Cancel';
-    resultsLog.innerHTML = '';
-  }
-
-  function hideProgressUI() {
-    sendBtn.classList.remove('hidden');
-    cancelSendBtn.classList.add('hidden');
-    updateSenderCounts();
-  }
-
-  function startProgressPolling() {
-    if (progressPollInterval) clearInterval(progressPollInterval);
-    
-    progressPollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`${API_URL}/status`);
-        if (res.ok) {
-          const data = await res.json();
-          updateProgressUI(data.bulk);
-          
-          if (['done', 'cancelled'].includes(data.bulk.status)) {
-            clearInterval(progressPollInterval);
-            setTimeout(hideProgressUI, 2000);
-          }
-        }
-      } catch (e) {
-        console.error('Polling error', e);
-      }
-    }, 1000);
-  }
-
-  function updateProgressUI(bulk) {
-    if (!bulk) return;
-    
-    const pct = bulk.total > 0 ? Math.round(((bulk.sent + bulk.failed) / bulk.total) * 100) : 0;
-    progressBar.style.width = `${pct}%`;
-    progressStats.textContent = `${bulk.sent + bulk.failed}/${bulk.total}`;
-    
-    if (bulk.status === 'sending') {
-      progressText.textContent = `Sending to: ${bulk.current}...`;
-    } else if (bulk.status === 'done') {
-      progressText.textContent = `Complete! Sent: ${bulk.sent}, Failed: ${bulk.failed}`;
-      progressBar.style.background = '#22c55e';
-    } else if (bulk.status === 'cancelled') {
-      progressText.textContent = `Cancelled. Sent: ${bulk.sent}`;
-      progressBar.style.background = '#f59e0b';
-    }
-
-    // Update log
-    if (bulk.results && bulk.results.length > 0) {
-      const logs = bulk.results.map(r => 
-        `<div class="${r.success ? 'log-success' : 'log-error'}">[${r.timestamp.split('T')[1].split('.')[0]}] ${r.success ? '✓' : '✗'} ${r.to}${r.success ? '' : ' - ' + r.message}</div>`
-      );
-      resultsLog.innerHTML = logs.reverse().join('');
-    }
-  }
 
   // ─── Start ──────────────────────────────────────────────────────────────
   init();
