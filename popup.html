@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedIn Email Scraper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1>Email Scraper & Sender</h1>
+      <span class="badge" id="emailCount">0</span>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="scraper">Scraper</button>
+      <button class="tab-btn" data-tab="sender">Send Email</button>
+    </div>
+
+    <!-- Scraper Tab -->
+    <div class="tab-content active" id="tab-scraper">
+      <!-- Controls -->
+      <div class="controls">
+        <button id="toggleBtn" class="btn btn-start">Start Scraping</button>
+        <button id="exportBtn" class="btn btn-export" disabled>Export CSV</button>
+        <button id="clearBtn" class="btn btn-clear" disabled>Clear</button>
+      </div>
+
+      <!-- Status -->
+      <div class="status" id="status">
+        <span class="status-dot inactive"></span>
+        <span id="statusText">Inactive</span>
+      </div>
+
+      <!-- Search/Filter -->
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Filter emails..." />
+      </div>
+
+      <!-- Email Table -->
+      <div class="table-wrapper">
+        <table id="emailTable">
+          <thead>
+            <tr>
+              <th class="checkbox-cell"><input type="checkbox" id="selectAllCheckbox"></th>
+              <th>Email</th>
+              <th>Poster</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="emailTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+        <div class="empty-state" id="emptyState">
+          <p>No emails found yet.</p>
+          <p class="hint">Navigate to LinkedIn posts and start scraping.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sender Tab -->
+    <div class="tab-content" id="tab-sender">
+      <!-- Server Status Warning -->
+      <div id="serverWarning" class="alert alert-warning hidden">
+        Local server is not running. Please run <code>node server/start.js</code>
+      </div>
+
+      <div class="sender-layout">
+        <!-- Left Column: Settings -->
+        <div class="settings-panel">
+          <h2 class="section-title">SMTP Settings</h2>
+          
+          <div class="form-group row">
+            <div class="half">
+              <label>Provider Preset</label>
+              <select id="smtpPreset">
+                <option value="custom">Custom</option>
+                <option value="gmail">Gmail</option>
+                <option value="outlook">Outlook</option>
+                <option value="yahoo">Yahoo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group row">
+            <div class="three-quarter">
+              <label>Host</label>
+              <input type="text" id="smtpHost" placeholder="smtp.gmail.com">
+            </div>
+            <div class="quarter">
+              <label>Port</label>
+              <input type="number" id="smtpPort" placeholder="587">
+            </div>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" id="smtpSecure"> Use direct TLS (Port 465)</label>
+          </div>
+
+          <div class="form-group">
+            <label>Email / Username</label>
+            <input type="text" id="smtpUser" placeholder="you@example.com">
+          </div>
+
+          <div class="form-group">
+            <label>Password (App Password for Gmail)</label>
+            <input type="password" id="smtpPass" placeholder="••••••••">
+          </div>
+
+          <div class="form-group">
+            <label>Sender Name (Optional)</label>
+            <input type="text" id="senderName" placeholder="John Doe">
+          </div>
+
+          <button id="testSmtpBtn" class="btn btn-secondary">Test Connection</button>
+          <div id="smtpTestResult" class="form-message"></div>
+        </div>
+
+        <!-- Right Column: Composer -->
+        <div class="compose-panel">
+          <h2 class="section-title">Compose Email</h2>
+          
+          <div class="form-group">
+            <label>Subject</label>
+            <input type="text" id="emailSubject" placeholder="Opportunity">
+          </div>
+
+          <div class="form-group">
+            <label>Message (HTML supported)</label>
+            <textarea id="emailBody" rows="8" placeholder="Hi there,<br><br>I saw your post on LinkedIn..."></textarea>
+          </div>
+
+          <div class="send-options">
+            <div class="form-group send-target-group">
+              <label>Send To:</label>
+              <div class="radio-group">
+                <label><input type="radio" name="sendTarget" value="selected" checked> Selected (<span id="selectedCount">0</span>)</label>
+                <label><input type="radio" name="sendTarget" value="all"> All Scraped (<span id="allCount">0</span>)</label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Delay between emails (ms):</label>
+              <input type="number" id="sendDelay" value="2000" min="500">
+            </div>
+          </div>
+
+          <div class="send-actions">
+            <button id="sendBtn" class="btn btn-primary" disabled>Send Emails</button>
+            <button id="cancelSendBtn" class="btn btn-danger hidden">Cancel</button>
+          </div>
+
+          <!-- Progress tracking -->
+          <div id="sendProgressContainer" class="progress-container hidden">
+            <div class="progress-header">
+              <span id="progressText">Sending...</span>
+              <span id="progressStats">0/0</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div id="progressBar" class="progress-bar"></div>
+            </div>
+            <div class="results-log" id="resultsLog"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
