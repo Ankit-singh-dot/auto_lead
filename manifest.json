@@ -12,8 +12,7 @@
   ],
   "host_permissions": [
     "https://www.linkedin.com/*",
-    "https://linkedin.com/*",
-    "http://localhost:3847/*"
+    "https://linkedin.com/*"
   ],
   "background": {
     "service_worker": "background.js"
