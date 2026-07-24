@@ -64,74 +64,22 @@
 
     <!-- Sender Tab -->
     <div class="tab-content" id="tab-sender">
-      <!-- Server Status Warning -->
-      <div id="serverWarning" class="alert alert-warning hidden">
-        Local server is not running. Please run <code>node server/start.js</code>
-      </div>
-
       <div class="sender-layout">
-        <!-- Left Column: Settings -->
-        <div class="settings-panel">
-          <h2 class="section-title">SMTP Settings</h2>
-          
-          <div class="form-group row">
-            <div class="half">
-              <label>Provider Preset</label>
-              <select id="smtpPreset">
-                <option value="custom">Custom</option>
-                <option value="gmail">Gmail</option>
-                <option value="outlook">Outlook</option>
-                <option value="yahoo">Yahoo</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group row">
-            <div class="three-quarter">
-              <label>Host</label>
-              <input type="text" id="smtpHost" placeholder="smtp.gmail.com">
-            </div>
-            <div class="quarter">
-              <label>Port</label>
-              <input type="number" id="smtpPort" placeholder="587">
-            </div>
-          </div>
-
-          <div class="form-group checkbox-group">
-            <label><input type="checkbox" id="smtpSecure"> Use direct TLS (Port 465)</label>
-          </div>
-
-          <div class="form-group">
-            <label>Email / Username</label>
-            <input type="text" id="smtpUser" placeholder="you@example.com">
-          </div>
-
-          <div class="form-group">
-            <label>Password (App Password for Gmail)</label>
-            <input type="password" id="smtpPass" placeholder="••••••••">
-          </div>
-
-          <div class="form-group">
-            <label>Sender Name (Optional)</label>
-            <input type="text" id="senderName" placeholder="John Doe">
-          </div>
-
-          <button id="testSmtpBtn" class="btn btn-secondary">Test Connection</button>
-          <div id="smtpTestResult" class="form-message"></div>
-        </div>
-
-        <!-- Right Column: Composer -->
         <div class="compose-panel">
-          <h2 class="section-title">Compose Email</h2>
+          <h2 class="section-title">Compose Email (BCC Method)</h2>
           
+          <div class="alert alert-info">
+            <strong>How this works:</strong> This will open your computer's default email app (like Apple Mail, Outlook, or Gmail if configured as default) with all selected emails hidden securely in the <strong>BCC</strong> field. Recipients will NOT see each other.
+          </div>
+
           <div class="form-group">
             <label>Subject</label>
-            <input type="text" id="emailSubject" placeholder="Opportunity">
+            <input type="text" id="emailSubject" placeholder="Opportunity from LinkedIn">
           </div>
 
           <div class="form-group">
-            <label>Message (HTML supported)</label>
-            <textarea id="emailBody" rows="8" placeholder="Hi there,<br><br>I saw your post on LinkedIn..."></textarea>
+            <label>Message (Plain text only for default clients)</label>
+            <textarea id="emailBody" rows="8" placeholder="Hi there,\n\nI saw your post on LinkedIn..."></textarea>
           </div>
 
           <div class="send-options">
@@ -142,28 +90,15 @@
                 <label><input type="radio" name="sendTarget" value="all"> All Scraped (<span id="allCount">0</span>)</label>
               </div>
             </div>
-            
-            <div class="form-group">
-              <label>Delay between emails (ms):</label>
-              <input type="number" id="sendDelay" value="2000" min="500">
-            </div>
           </div>
 
-          <div class="send-actions">
-            <button id="sendBtn" class="btn btn-primary" disabled>Send Emails</button>
-            <button id="cancelSendBtn" class="btn btn-danger hidden">Cancel</button>
+          <div class="send-actions" style="display: flex; gap: 10px;">
+            <button id="sendBtn" class="btn btn-primary" disabled>Open in Default App</button>
+            <button id="gmailBtn" class="btn btn-primary" style="background: #ea4335; border-color: #ea4335;" disabled>Open in Gmail (Web)</button>
           </div>
-
-          <!-- Progress tracking -->
-          <div id="sendProgressContainer" class="progress-container hidden">
-            <div class="progress-header">
-              <span id="progressText">Sending...</span>
-              <span id="progressStats">0/0</span>
-            </div>
-            <div class="progress-bar-wrap">
-              <div id="progressBar" class="progress-bar"></div>
-            </div>
-            <div class="results-log" id="resultsLog"></div>
+          
+          <div id="bccWarning" class="form-message error hidden">
+            Warning: Some email clients block mailto links with more than 100 recipients. Try selecting fewer emails if nothing happens.
           </div>
 
         </div>
