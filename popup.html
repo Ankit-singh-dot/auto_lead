@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LinkedIn Email Scraper</title>
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="container">
     <!-- Header -->
     <header class="header">
-      <h1>Email Scraper & Sender</h1>
+      <h1>Auto-Linked</h1>
       <span class="badge" id="emailCount">0</span>
     </header>
 
@@ -18,6 +20,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="scraper">Scraper</button>
       <button class="tab-btn" data-tab="sender">Send Email</button>
+      <button class="tab-btn" data-tab="license">Pro License</button>
     </div>
 
     <!-- Scraper Tab -->
@@ -67,9 +70,11 @@
       <div class="sender-layout">
         <div class="compose-panel">
           <h2 class="section-title">Compose Email (BCC Method)</h2>
-          
+
           <div class="alert alert-info">
-            <strong>How this works:</strong> This will open your computer's default email app (like Apple Mail, Outlook, or Gmail if configured as default) with all selected emails hidden securely in the <strong>BCC</strong> field. Recipients will NOT see each other.
+            <strong>How this works:</strong> This will open your computer's default email app (like Apple Mail, Outlook,
+            or Gmail if configured as default) with all selected emails hidden securely in the <strong>BCC</strong>
+            field. Recipients will NOT see each other.
           </div>
 
           <div class="form-group">
@@ -86,26 +91,76 @@
             <div class="form-group send-target-group">
               <label>Send To:</label>
               <div class="radio-group">
-                <label><input type="radio" name="sendTarget" value="selected" checked> Selected (<span id="selectedCount">0</span>)</label>
-                <label><input type="radio" name="sendTarget" value="all"> All Scraped (<span id="allCount">0</span>)</label>
+                <label><input type="radio" name="sendTarget" value="selected" checked> Selected (<span
+                    id="selectedCount">0</span>)</label>
+                <label><input type="radio" name="sendTarget" value="all"> All Scraped (<span
+                    id="allCount">0</span>)</label>
               </div>
             </div>
           </div>
 
-          <div class="send-actions" style="display: flex; gap: 10px;">
+          <div class="send-actions" style="display: flex; gap: 10px; align-items: center;">
             <button id="sendBtn" class="btn btn-primary" disabled>Open in Default App</button>
-            <button id="gmailBtn" class="btn btn-primary" style="background: #ea4335; border-color: #ea4335;" disabled>Open in Gmail (Web)</button>
+            <button id="gmailBtn" class="btn btn-primary" style="background: #ea4335; border-color: #ea4335;"
+              disabled>Open in Gmail (Web)</button>
           </div>
-          
+          <div id="usageLimitWarning" class="form-message error hidden"
+            style="margin-top: 10px; border-color: #f87171; background: #fef2f2; color: #b91c1c;">
+            <strong>Free Limit Reached!</strong> You have used your 2 free sends. Please upgrade to Pro in the License
+            tab.
+          </div>
+
           <div id="bccWarning" class="form-message error hidden">
-            Warning: Some email clients block mailto links with more than 100 recipients. Try selecting fewer emails if nothing happens.
+            Warning: Some email clients block mailto links with more than 100 recipients. Try selecting fewer emails if
+            nothing happens.
           </div>
 
         </div>
       </div>
     </div>
+
+    <!-- License Tab -->
+    <div class="tab-content" id="tab-license">
+      <div id="upgradeUi" class="compose-panel" style="text-align: center; padding-top: 40px; align-items: center;">
+        <h2 class="section-title" style="font-size: 18px;">Upgrade to Auto-Linked Pro</h2>
+        <p style="color: #666; margin-bottom: 24px; font-size: 13px;">Enter your Master Password to unlock unlimited
+          bulk sending.</p>
+
+        <div class="form-group"
+          style="width: 100%; max-width: 300px; margin-bottom: 12px; margin-left: auto; margin-right: auto;">
+          <input type="password" id="licenseKeyInput" placeholder="Enter Password" style="text-align: center;">
+        </div>
+
+        <button id="verifyLicenseBtn" class="btn btn-primary"
+          style="width: 100%; max-width: 300px; margin-left: auto; margin-right: auto;">Unlock Pro</button>
+        <div id="licenseMessage" class="form-message hidden"
+          style="width: 100%; max-width: 300px; margin-top: 12px; margin-left: auto; margin-right: auto;">
+        </div>
+
+        <div
+          style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; width: 100%; max-width: 300px; margin-left: auto; margin-right: auto;">
+          <p style="font-size: 12px; color: #999; margin-bottom: 8px;">Don't have a password?</p>
+          <a href="https://rzp.io/rzp/JynWoo3j" target="_blank" id="buyLink" class="btn"
+            style="display: block; text-decoration: none; border-color: #10b981; color: #10b981;">Buy Pro (₹49
+            Lifetime)</a>
+        </div>
+      </div>
+
+      <div id="proActiveUi" class="compose-panel hidden"
+        style="text-align: center; padding-top: 60px; align-items: center;">
+        <div
+          style="width: 64px; height: 64px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+          <span style="color: #166534; font-size: 32px;">✓</span>
+        </div>
+        <h2 class="section-title" style="font-size: 20px; color: #166534; margin-bottom: 10px;">Pro License Active</h2>
+        <p style="color: #666; margin-bottom: 24px; font-size: 14px;">You have unlimited access to all features forever.
+        </p>
+      </div>
+    </div>
+
   </div>
 
   <script src="popup.js"></script>
 </body>
+
 </html>
